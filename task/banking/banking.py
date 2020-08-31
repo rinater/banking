@@ -48,10 +48,12 @@ class BankingSystem:
         self.login_card = None  # № залогиенной карты
         self.balance = None  # баланс
         self.last_generated_card_number = None
+        self.last_pin = None
         self.main()
 
     def main(self):
-        self.get_main_menu()
+        # self.get_main_menu()
+        pass
 
     def get_main_menu(self):
         print('1. Create an account')
@@ -173,7 +175,7 @@ class BankingSystem:
             '400000' + generated_card_number)
         return card_number
 
-    def create_account(self):
+    def create_account(self, event):
         generated_card_number = generate_sequence(9)
         card_number = self.generate_full_number(generated_card_number)
         cur.execute('SELECT number FROM card WHERE number =?', (card_number,))
@@ -190,12 +192,13 @@ class BankingSystem:
                         (card_number, pin, 0))
             conn.commit()
             print()
+            #   self.get_main_menu()
             self.last_generated_card_number = card_number
-            self.get_main_menu()
+            self.last_pin = pin
         else:
             self.create_account()  # не оптимально
 
-    def log_into(self):
+    def log_into(self, event):
         print('Enter your card number:')
         card_number = input()
         print('Enter your PIN:')
