@@ -1,6 +1,10 @@
 import random
 import sqlite3
 
+'''
+добавить GUI 
+'''
+
 # инициализация sqlite3, создание таблицы
 conn = sqlite3.connect('card.s3db')
 cur = conn.cursor()
@@ -27,24 +31,14 @@ def check_sum(acc_id):
     return str(checksum)
 
 
-# генерация PIN поэлементно, чтобы могло начинаться с 0
-def generate_pin():
-    pin_list = []
-    for i in range(0, 4):
+# генерация последовательностей (PIN, card number)
+def generate_sequence(size):
+    numbers_list = []
+    for i in range(0, size):
         a = str(random.randint(0, 9))
-        pin_list.append(a)
-    pin = ''.join(pin_list)
-    return pin
-
-
-# генерим номер карты
-def generate_card_number():
-    cn_list = []
-    for i in range(0, 9):
-        a = str(random.randint(0, 9))
-        cn_list.append(a)
-    card_number = ''.join(cn_list)
-    return card_number
+        numbers_list.append(a)
+    sequence = ''.join(numbers_list)
+    return sequence
 
 
 class BankingSystem:
@@ -53,6 +47,7 @@ class BankingSystem:
         self.command = None
         self.login_card = None  # № залогиенной карты
         self.balance = None  # баланс
+        self.last_generated_card_number = None
         self.main()
 
     def main(self):
@@ -173,22 +168,32 @@ class BankingSystem:
         print('The account has been closed!')
         self.get_main_menu()
 
-    def create_account(self):
-        print()
-        print('Your card has been created')
-        print('Your card number:')
-        generated_card_number = generate_card_number()
+    def generate_full_number(self, generated_card_number):
         card_number = '400000' + generated_card_number + check_sum(
             '400000' + generated_card_number)
-        print(card_number)
-        print('Your card PIN:')
-        pin = generate_pin()
-        print(pin)
-        cur.execute('INSERT INTO card (number,pin,balance)VALUES(?,?,?)',  # id - PK
-                    (card_number, pin, 0))
-        conn.commit()
-        print()
-        self.get_main_menu()
+        return card_number
+
+    def create_account(self):
+        generated_card_number = generate_sequence(9)
+        card_number = self.generate_full_number(generated_card_number)
+        cur.execute('SELECT number FROM card WHERE number =?', (card_number,))
+        cn_from_db = cur.fetchall()
+        if not cn_from_db:
+            print()
+            print('Your card has been created')
+            print('Your card number:')
+            print(card_number)
+            print('Your card PIN:')
+            pin = generate_sequence(4)
+            print(pin)
+            cur.execute('INSERT INTO card (number,pin,balance)VALUES(?,?,?)',  # id - PK
+                        (card_number, pin, 0))
+            conn.commit()
+            print()
+            self.last_generated_card_number = card_number
+            self.get_main_menu()
+        else:
+            self.create_account()  # не оптимально
 
     def log_into(self):
         print('Enter your card number:')
@@ -202,6 +207,8 @@ class BankingSystem:
 
         if not card_from_db:
             print('Wrong card number or PIN!')  # запись не найдена, нам вывело []
+            print()
+            self.get_main_menu()
         else:
             print('You have successfully logged in!')  # номер карты и пин нашлись
             print()
@@ -209,4 +216,4 @@ class BankingSystem:
             self.get_login_menu()
 
 
-BankingSystem()
+bank = BankingSystem()
